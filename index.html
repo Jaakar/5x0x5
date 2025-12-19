@@ -3,122 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SG-0 : 5x0x5 Visualization</title>
+  <title>SG-0 : 5x0x5</title>
 
-  <!-- Sci-fi + UI mono fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --bg-color: #050505;
-      --text-color: #a0a0a0;
-      --accent-color: #00ffd5;
-
-      --font-ui: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      --font-logo: "Orbitron", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    :root{
+      --bg:#050505;
+      --accent:#00ffd5;
+      --code:#00ffd5;
+    }
+    html, body{
+      margin:0; padding:0;
+      height:100%;
+      overflow:hidden;
+      background:var(--bg);
     }
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg-color);
-      color: var(--text-color);
-      font-family: var(--font-ui);
-    }
-
-    #canvas-container {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
+    #canvas-container{
+      position:absolute;
+      inset:0;
+      z-index:0;
       background: radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
     }
 
-    #ui-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 10;
-      pointer-events: none;
-      padding: 2rem;
-      box-sizing: border-box;
+    /* Center title */
+    #ui{
+      position:absolute;
+      inset:0;
+      z-index:10;
+      pointer-events:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding: 1rem;
+      box-sizing:border-box;
     }
-
-    header {
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      font-size: 0.72rem;
-      color: var(--accent-color);
-      opacity: 0.85;
-    }
-
-    .main-title {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      width: min(92vw, 900px);
-    }
-
-    .domain-id {
-      margin: 0;
-      font-family: var(--font-logo);
-      font-size: clamp(3.2rem, 8vw, 5.2rem);
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      color: #fff;
-      text-shadow: 0 0 28px rgba(0, 255, 213, 0.55);
-
-      /* helps digits look consistent */
+    .domain-id{
+      margin:0;
+      font-family:"Orbitron", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      font-weight:700;
+      color:#fff;
+      font-size: clamp(2.6rem, 10vw, 5.2rem);
+      letter-spacing: 0.12em;
+      text-shadow: 0 0 28px rgba(0,255,213,0.55);
       font-variant-numeric: tabular-nums;
       -webkit-font-smoothing: antialiased;
       text-rendering: geometricPrecision;
     }
-
-    /* Remove the “letter-spacing pushes center” feel by re-centering visually */
-    .domain-id > span {
-      display: inline-block;
-      transform: translateX(0.09em); /* half of letter-spacing */
+    .domain-id > span{
+      display:inline-block;
+      transform: translateX(0.06em);
     }
 
-    .subtitle {
-      margin-top: 1rem;
-      font-size: 0.95rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      opacity: 0.6;
+    /* Faint math/code strips (top & bottom) */
+    .code-strip{
+      position:absolute;
+      left:0; right:0;
+      height: 18vh;
+      z-index:9;            /* under title, above canvas */
+      pointer-events:none;
+      overflow:hidden;
+
+      font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      color: rgba(0,255,213,0.28);
+      text-shadow: 0 0 12px rgba(0,255,213,0.12);
+      letter-spacing: 0.08em;
+      line-height: 1.35;
+      font-size: 0.72rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .code-strip.top{
+      top:0;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.75), rgba(0,0,0,0.25), rgba(0,0,0,0));
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.75), rgba(0,0,0,0.25), rgba(0,0,0,0));
+    }
+    .code-strip.bottom{
+      bottom:0;
+      mask-image: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.25), rgba(0,0,0,0));
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.25), rgba(0,0,0,0));
     }
 
-    .quote-box {
-      position: absolute;
-      left: 2rem;
-      bottom: 2rem;
-      max-width: 360px;
-      font-size: 0.85rem;
-      line-height: 1.6;
-      opacity: 0.7;
-      border-left: 3px solid var(--accent-color);
-      padding-left: 1rem;
+    .code-scroll{
+      position:absolute;
+      left:0; right:0;
+      padding: 1.2rem 1.2rem;
+      box-sizing:border-box;
+      white-space: pre;
+      opacity: 0.75;
     }
 
-    @media (max-width: 600px) {
-      #ui-overlay { padding: 1.25rem; }
+    /* Scroll animations */
+    .top .code-scroll{
+      animation: scrollDown 18s linear infinite;
+    }
+    .bottom .code-scroll{
+      animation: scrollUp 18s linear infinite;
+    }
 
-      header { letter-spacing: 2px; }
+    /* subtle flicker */
+    .code-strip::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(circle at 50% 50%, rgba(0,255,213,0.06), transparent 60%);
+      opacity: 0.5;
+      animation: shimmer 6s ease-in-out infinite;
+      pointer-events:none;
+    }
 
-      .subtitle {
-        font-size: 0.8rem;
-        margin-top: 0.8rem;
-      }
+    @keyframes scrollDown{
+      from{ transform: translateY(-35%); }
+      to  { transform: translateY(0%); }
+    }
+    @keyframes scrollUp{
+      from{ transform: translateY(0%); }
+      to  { transform: translateY(-35%); }
+    }
+    @keyframes shimmer{
+      0%,100%{ opacity:0.35; }
+      50%{ opacity:0.6; }
+    }
 
-      .quote-box {
-        left: 1.25rem;
-        bottom: 1.25rem;
-        max-width: 85vw;
-      }
+    @media (prefers-reduced-motion: reduce){
+      .top .code-scroll, .bottom .code-scroll, .code-strip::after{ animation:none !important; }
     }
   </style>
 </head>
@@ -126,26 +136,25 @@
 <body>
   <div id="canvas-container"></div>
 
-  <div id="ui-overlay">
-    <header>SG-0 // Structure Class: Pentagonal</header>
+  <div class="code-strip top"><div class="code-scroll" id="codeTop"></div></div>
+  <div class="code-strip bottom"><div class="code-scroll" id="codeBottom"></div></div>
 
-    <div class="main-title">
-      <h1 class="domain-id"><span>505</span></h1>
-      <div class="subtitle">Pentagonal Symmetry Network</div>
-    </div>
-
-    <div class="quote-box">
-      "When a domain is not a word, but a structure, it can be visualized as a mathematical object."
-    </div>
+  <div id="ui">
+    <h1 class="domain-id"><span>5x0x5</span></h1>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
   <script>
     let scene, camera, renderer;
     let centerAnchorGroup;
     let leftPentagonGroup, rightPentagonGroup;
-    let pointerX = 0, pointerY = 0;
+
+    // pointer (mobiili + desktop)
+    let pointerNDC = new THREE.Vector2(0, 0);
+
+    // repulsion physics
+    const centerOffset = new THREE.Vector3(0, 0, 0);
+    const centerVelocity = new THREE.Vector3(0, 0, 0);
 
     const CONFIG = {
       colorFive: 0x00ffd5,
@@ -155,9 +164,76 @@
       fogDensity: 0.025
     };
 
-    function init() {
+    // --------- CODE STRIPS (faint math computing) ----------
+    const CHARSET = "0123456789ABCDEF+-*/=<>[](){}.,:;_|~^";
+    const GREEK = ["Φ","Σ","Ω","Δ","λ","π","μ","η","ψ","∇","∂","∞"];
+    const TOKENS = [
+      "SG-0","X0X","PENT","DODEC","ICOSA","FFT","MATRIX","EIGEN","NORM","PRIME",
+      "HASH","UID","ENTROPY","FLOW","STATE","VECTOR","TENSOR","FIELD","SYMM"
+    ];
+
+    function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+    function randomMathLine(width=64){
+      const a = pick(TOKENS);
+      const b = pick(TOKENS);
+      const g = pick(GREEK);
+
+      // create a “calculation-ish” line
+      let core =
+        `${a} ${g}=${pick(GREEK)}  ` +
+        `A[${randInt(0,9)},${randInt(0,9)}]·B[${randInt(0,9)},${randInt(0,9)}] -> ` +
+        `${b}:${randInt(10,99)}  ` +
+        `∑k=${randInt(1,9)}  ` +
+        `|x|=${(Math.random()*9).toFixed(3)}  ` +
+        `h=${randInt(1000,9999).toString(16).toUpperCase()}`;
+
+      // pad / trim with random symbols
+      while(core.length < width){
+        core += CHARSET[Math.floor(Math.random()*CHARSET.length)];
+      }
+      return core.slice(0, width);
+    }
+
+    function buildCodeBlock(lines=28, width=66){
+      const out = [];
+      for(let i=0;i<lines;i++) out.push(randomMathLine(width));
+      return out.join("\n");
+    }
+
+    // “mutate” a few chars so it feels like it’s calculating
+    function mutateText(el, mutations=10){
+      const txt = el.textContent;
+      if(!txt) return;
+      const arr = txt.split("");
+      for(let i=0;i<mutations;i++){
+        const idx = randInt(0, arr.length-1);
+        if(arr[idx] === "\n") continue;
+        // occasionally inject greek token
+        if(Math.random() < 0.12) arr[idx] = pick(GREEK);
+        else arr[idx] = CHARSET[Math.floor(Math.random()*CHARSET.length)];
+      }
+      el.textContent = arr.join("");
+    }
+
+    function initCodeStrips(){
+      const top = document.getElementById("codeTop");
+      const bottom = document.getElementById("codeBottom");
+      top.textContent = buildCodeBlock(30, 68);
+      bottom.textContent = buildCodeBlock(30, 68);
+
+      // small periodic mutation
+      setInterval(() => mutateText(top, 14), 900);
+      setInterval(() => mutateText(bottom, 14), 1000);
+    }
+
+    // -------------- THREE.JS SCENE ----------------
+    function init(){
+      initCodeStrips();
+
       const container = document.getElementById("canvas-container");
-      container.innerHTML = ""; // avoid duplicates on hot reloads
+      container.innerHTML = "";
 
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x050505, CONFIG.fogDensity);
@@ -165,16 +241,15 @@
       camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
       camera.position.z = 18;
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setClearColor(0x000000, 0); // transparent clear
+      renderer.setClearColor(0x000000, 0);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.2;
       container.appendChild(renderer.domElement);
 
       createLighting();
-
       createCenterZero();
 
       leftPentagonGroup = createPentagonalComplex(CONFIG.colorFive);
@@ -186,13 +261,14 @@
       rightPentagonGroup.rotation.y = Math.PI;
       scene.add(rightPentagonGroup);
 
-      window.addEventListener("resize", onWindowResize, { passive: true });
-      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      window.addEventListener("resize", onWindowResize, { passive:true });
+      window.addEventListener("pointermove", onPointerMove, { passive:true });
+      window.addEventListener("pointerdown", onPointerDown, { passive:true });
 
       animate();
     }
 
-    function createLighting() {
+    function createLighting(){
       scene.add(new THREE.AmbientLight(0x222222));
 
       const centerLight = new THREE.PointLight(CONFIG.colorZero, 1, 40);
@@ -208,7 +284,7 @@
       scene.add(sideLightR);
     }
 
-    function createCenterZero() {
+    function createCenterZero(){
       centerAnchorGroup = new THREE.Group();
 
       const coreGeo = new THREE.SphereGeometry(0.5, 32, 32);
@@ -233,9 +309,7 @@
       const particleGeo = new THREE.BufferGeometry();
       const particleCount = 300;
       const posArray = new Float32Array(particleCount * 3);
-      for (let i = 0; i < particleCount * 3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 6;
-      }
+      for (let i=0; i<particleCount*3; i++) posArray[i] = (Math.random() - 0.5) * 6;
       particleGeo.setAttribute("position", new THREE.BufferAttribute(posArray, 3));
 
       const particleMat = new THREE.PointsMaterial({
@@ -250,7 +324,7 @@
       scene.add(centerAnchorGroup);
     }
 
-    function createPentagonalComplex(color) {
+    function createPentagonalComplex(color){
       const group = new THREE.Group();
       const geometry = new THREE.DodecahedronGeometry(2.8, 0);
 
@@ -281,15 +355,103 @@
       return group;
     }
 
-    function animate() {
+    function onPointerMove(e){
+      pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    function onPointerDown(e){
+      pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      // click/tap effect
+      spawnClickPulse(pointerNDC.x, pointerNDC.y);
+
+      // repulsion impulse (push center away)
+      const impulse = new THREE.Vector3(-pointerNDC.x, -pointerNDC.y, 0).multiplyScalar(0.9);
+      centerVelocity.add(impulse);
+    }
+
+    function spawnClickPulse(nx, ny){
+      // position near screen plane
+      const pos = new THREE.Vector3(nx * 6, ny * 6, 6);
+
+      // 1) point light pulse
+      const light = new THREE.PointLight(CONFIG.colorFive, 2.0, 18, 2.0);
+      light.position.copy(pos);
+      scene.add(light);
+
+      // 2) glow sphere
+      const glowGeo = new THREE.SphereGeometry(0.15, 16, 16);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: CONFIG.colorFive,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+      const glow = new THREE.Mesh(glowGeo, glowMat);
+      glow.position.copy(pos);
+      scene.add(glow);
+
+      // 3) shockwave ring
+      const ringGeo = new THREE.RingGeometry(0.35, 0.48, 64);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: CONFIG.colorFive,
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(pos);
+      scene.add(ring);
+
+      const start = performance.now();
+      const duration = 520; // ms
+
+      function fade(){
+        const t = (performance.now() - start) / duration;
+        if (t >= 1){
+          scene.remove(light);
+          scene.remove(glow);
+          scene.remove(ring);
+
+          glow.geometry.dispose();
+          glow.material.dispose();
+          ring.geometry.dispose();
+          ring.material.dispose();
+          return;
+        }
+
+        // ease-out curve
+        const k = 1 - t;
+
+        light.intensity = 2.0 * k;
+        glow.material.opacity = 0.9 * k;
+        glow.scale.setScalar(1 + (1 - k) * 3.2);
+
+        ring.material.opacity = 0.55 * k;
+        ring.scale.setScalar(1 + (1 - k) * 10.0);
+
+        // keep ring facing camera
+        ring.quaternion.copy(camera.quaternion);
+
+        requestAnimationFrame(fade);
+      }
+      fade();
+    }
+
+    function animate(){
       requestAnimationFrame(animate);
       const time = Date.now() * 0.001;
 
+      // center base animation
       centerAnchorGroup.cageMesh.rotation.x += 0.01;
       centerAnchorGroup.cageMesh.rotation.y -= 0.015;
       const pulse = 1 + Math.sin(time * 1.5) * 0.05;
       centerAnchorGroup.scale.set(pulse, pulse, pulse);
 
+      // rotating side objects
       leftPentagonGroup.rotation.x += CONFIG.rotationSpeed * 1.2;
       leftPentagonGroup.rotation.y += CONFIG.rotationSpeed;
       leftPentagonGroup.rotation.z += CONFIG.rotationSpeed * 0.5;
@@ -298,27 +460,30 @@
       rightPentagonGroup.rotation.y -= CONFIG.rotationSpeed;
       rightPentagonGroup.rotation.z -= CONFIG.rotationSpeed * 0.5;
 
-      // Pointer -> smooth camera drift
-      const targetX = pointerX * 6.0;
-      const targetY = pointerY * 6.0;
-      camera.position.x += (targetX - camera.position.x) * 0.05;
-      camera.position.y += (targetY - camera.position.y) * 0.05;
+      // repulsion spring/damping (return to center)
+      const spring = 0.12;
+      const damping = 0.86;
+
+      centerVelocity.addScaledVector(centerOffset, -spring);
+      centerVelocity.multiplyScalar(damping);
+      centerOffset.add(centerVelocity);
+      centerOffset.clampLength(0, 2.2);
+      centerAnchorGroup.position.set(centerOffset.x, centerOffset.y, 0);
+
+      // subtle camera drift following pointer (works on mobile too)
+      const targetX = pointerNDC.x * 6.0;
+      const targetY = pointerNDC.y * 6.0;
+      camera.position.x += (targetX - camera.position.x) * 0.04;
+      camera.position.y += (targetY - camera.position.y) * 0.04;
       camera.lookAt(scene.position);
 
       renderer.render(scene, camera);
     }
 
-    function onWindowResize() {
+    function onWindowResize(){
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function onPointerMove(e) {
-      const x = (e.clientX / window.innerWidth) * 2 - 1;
-      const y = -(e.clientY / window.innerHeight) * 2 + 1;
-      pointerX = x;
-      pointerY = y;
     }
 
     init();
