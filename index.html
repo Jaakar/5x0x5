@@ -29,6 +29,38 @@
       background: radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
     }
 
+    /* --- Ambient edge glow (left/right) --- */
+    .ambient{
+      position:absolute;
+      top:0; bottom:0;
+      width: 32vw;
+      z-index: 3;              /* canvasin päällä, koodin ja otsikon alla */
+      pointer-events:none;
+      opacity: 0.28;
+      filter: blur(22px);
+      mix-blend-mode: screen;
+      animation: ambientBreath 7s ease-in-out infinite;
+    }
+    .ambient-left{
+      left:-10vw;
+      background: radial-gradient(circle at 30% 50%,
+        rgba(0,255,213,0.22) 0%,
+        rgba(0,255,213,0.10) 30%,
+        rgba(0,0,0,0) 68%);
+    }
+    .ambient-right{
+      right:-10vw;
+      background: radial-gradient(circle at 70% 50%,
+        rgba(0,255,213,0.22) 0%,
+        rgba(0,255,213,0.10) 30%,
+        rgba(0,0,0,0) 68%);
+      animation-delay: -3.5s;
+    }
+    @keyframes ambientBreath{
+      0%,100%{ opacity:0.18; transform: translateY(0px); }
+      50%{ opacity:0.34; transform: translateY(-6px); }
+    }
+
     /* Center title */
     #ui{
       position:absolute;
@@ -64,7 +96,7 @@
       position:absolute;
       left:0; right:0;
       height: 18vh;
-      z-index:9;            /* under title, above canvas */
+      z-index:9;            /* under title, above ambient and canvas */
       pointer-events:none;
       overflow:hidden;
 
@@ -97,12 +129,8 @@
     }
 
     /* Scroll animations */
-    .top .code-scroll{
-      animation: scrollDown 18s linear infinite;
-    }
-    .bottom .code-scroll{
-      animation: scrollUp 18s linear infinite;
-    }
+    .top .code-scroll{ animation: scrollDown 18s linear infinite; }
+    .bottom .code-scroll{ animation: scrollUp 18s linear infinite; }
 
     /* subtle flicker */
     .code-strip::after{
@@ -128,13 +156,17 @@
     }
 
     @media (prefers-reduced-motion: reduce){
-      .top .code-scroll, .bottom .code-scroll, .code-strip::after{ animation:none !important; }
+      .top .code-scroll, .bottom .code-scroll, .code-strip::after, .ambient{ animation:none !important; }
     }
   </style>
 </head>
 
 <body>
   <div id="canvas-container"></div>
+
+  <!-- Ambient edge glow -->
+  <div class="ambient ambient-left"></div>
+  <div class="ambient ambient-right"></div>
 
   <div class="code-strip top"><div class="code-scroll" id="codeTop"></div></div>
   <div class="code-strip bottom"><div class="code-scroll" id="codeBottom"></div></div>
@@ -164,6 +196,83 @@
       fogDensity: 0.025
     };
 
+    // --------- CLICK SOUND (WebAudio, no files) ----------
+    let audioCtx = null;
+
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function playClickSound(pan = 0) {
+      try {
+        ensureAudio();
+        const t0 = audioCtx.currentTime;
+
+        const master = audioCtx.createGain();
+        master.gain.setValueAtTime(0.0001, t0);
+        master.gain.exponentialRampToValueAtTime(0.22, t0 + 0.01);
+        master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+
+        // stereo panner (fallback if not supported)
+        let outNode = master;
+        if (audioCtx.createStereoPanner) {
+          const panner = audioCtx.createStereoPanner();
+          panner.pan.setValueAtTime(Math.max(-0.8, Math.min(0.8, pan)), t0);
+          master.connect(panner);
+          outNode = panner;
+        }
+        outNode.connect(audioCtx.destination);
+
+        // sci-fi ping
+        const osc = audioCtx.createOscillator();
+        const oscGain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880, t0);
+        osc.frequency.exponentialRampToValueAtTime(520, t0 + 0.06);
+        oscGain.gain.setValueAtTime(0.0001, t0);
+        oscGain.gain.exponentialRampToValueAtTime(0.9, t0 + 0.008);
+        oscGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+        osc.connect(oscGain).connect(master);
+
+        // noise spark
+        const noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.08, audioCtx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = noiseBuf;
+
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.setValueAtTime(1800, t0);
+
+        const noiseGain = audioCtx.createGain();
+        noiseGain.gain.setValueAtTime(0.0001, t0);
+        noiseGain.gain.exponentialRampToValueAtTime(0.55, t0 + 0.004);
+        noiseGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.08);
+
+        noise.connect(hp).connect(noiseGain).connect(master);
+
+        // tiny sub thump (stealth)
+        const sub = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        sub.type = "sine";
+        sub.frequency.setValueAtTime(110, t0);
+        sub.frequency.exponentialRampToValueAtTime(70, t0 + 0.10);
+        subGain.gain.setValueAtTime(0.0001, t0);
+        subGain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.01);
+        subGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+        sub.connect(subGain).connect(master);
+
+        osc.start(t0);  osc.stop(t0 + 0.20);
+        noise.start(t0); noise.stop(t0 + 0.10);
+        sub.start(t0);  sub.stop(t0 + 0.20);
+      } catch (e) {
+        // ignore audio errors (e.g., strict mobile policies)
+      }
+    }
+
     // --------- CODE STRIPS (faint math computing) ----------
     const CHARSET = "0123456789ABCDEF+-*/=<>[](){}.,:;_|~^";
     const GREEK = ["Φ","Σ","Ω","Δ","λ","π","μ","η","ψ","∇","∂","∞"];
@@ -180,7 +289,6 @@
       const b = pick(TOKENS);
       const g = pick(GREEK);
 
-      // create a “calculation-ish” line
       let core =
         `${a} ${g}=${pick(GREEK)}  ` +
         `A[${randInt(0,9)},${randInt(0,9)}]·B[${randInt(0,9)},${randInt(0,9)}] -> ` +
@@ -189,7 +297,6 @@
         `|x|=${(Math.random()*9).toFixed(3)}  ` +
         `h=${randInt(1000,9999).toString(16).toUpperCase()}`;
 
-      // pad / trim with random symbols
       while(core.length < width){
         core += CHARSET[Math.floor(Math.random()*CHARSET.length)];
       }
@@ -202,7 +309,6 @@
       return out.join("\n");
     }
 
-    // “mutate” a few chars so it feels like it’s calculating
     function mutateText(el, mutations=10){
       const txt = el.textContent;
       if(!txt) return;
@@ -210,7 +316,6 @@
       for(let i=0;i<mutations;i++){
         const idx = randInt(0, arr.length-1);
         if(arr[idx] === "\n") continue;
-        // occasionally inject greek token
         if(Math.random() < 0.12) arr[idx] = pick(GREEK);
         else arr[idx] = CHARSET[Math.floor(Math.random()*CHARSET.length)];
       }
@@ -223,7 +328,6 @@
       top.textContent = buildCodeBlock(30, 68);
       bottom.textContent = buildCodeBlock(30, 68);
 
-      // small periodic mutation
       setInterval(() => mutateText(top, 14), 900);
       setInterval(() => mutateText(bottom, 14), 1000);
     }
@@ -364,7 +468,10 @@
       pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-      // click/tap effect
+      // sound (click/tap)
+      playClickSound(pointerNDC.x);
+
+      // visual click/tap effect
       spawnClickPulse(pointerNDC.x, pointerNDC.y);
 
       // repulsion impulse (push center away)
@@ -423,7 +530,6 @@
           return;
         }
 
-        // ease-out curve
         const k = 1 - t;
 
         light.intensity = 2.0 * k;
@@ -433,7 +539,6 @@
         ring.material.opacity = 0.55 * k;
         ring.scale.setScalar(1 + (1 - k) * 10.0);
 
-        // keep ring facing camera
         ring.quaternion.copy(camera.quaternion);
 
         requestAnimationFrame(fade);
@@ -470,7 +575,7 @@
       centerOffset.clampLength(0, 2.2);
       centerAnchorGroup.position.set(centerOffset.x, centerOffset.y, 0);
 
-      // subtle camera drift following pointer (works on mobile too)
+      // subtle camera drift following pointer
       const targetX = pointerNDC.x * 6.0;
       const targetY = pointerNDC.y * 6.0;
       camera.position.x += (targetX - camera.position.x) * 0.04;
